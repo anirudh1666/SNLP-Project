@@ -1,0 +1,10 @@
+numpy
+torch==1.9.0
+transformers==4.9.1
+sentencepiece==0.1.96
+tqdm
+argparse
+scikit-learn
+pytest
+sentence-transformers==2.1.0
+bert-extractive-summarizer
