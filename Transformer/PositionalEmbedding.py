@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 import math
 
 class PositionalEmbedding(nn.Module):
   def __init__(self, src_vocab, d_model, dropout, max_len=5000):
     super().__init__()
-    self._embeddings = nn.Embedding(d_model, src_vocab)
+    self._embeddings = nn.Embedding(src_vocab, d_model)
+    self._d_model = d_model
     self._dropout = nn.Dropout(p=dropout)
 
     pe = torch.zeros(max_len, d_model)
@@ -19,6 +21,7 @@ class PositionalEmbedding(nn.Module):
     self.register_buffer('pe', pe)
 
   def forward(self, x):
-    x = self._embeddings(x)
-    x += self.pe[:, :x.size(1)]
+    x = math.sqrt(self._d_model) * self._embeddings(x)
+
+    x += Variable(self.pe[:, :x.size(1)], requires_grad=False)
     return self._dropout(x)

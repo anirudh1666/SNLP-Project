@@ -64,14 +64,14 @@ if __name__ == '__main__':
         transformer.train()
 
         for i, batch in enumerate(iterator):
-            print(batch.src.size())
             out = transformer(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-            loss = criterion(out.contiguous().view(-1, out.size(-1)), y.contiguous().view(-1)) / batch.ntokens
+            loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1)) / batch.ntokens
             loss.backward()
             optimiser.step()
             optimiser.optimizer.zero_grad()
-
-            print(loss.item() * batch.ntokens)
+            
+            if i % 100 == 0:
+                print(loss.item() * batch.ntokens)
 
         transformer.eval()
 

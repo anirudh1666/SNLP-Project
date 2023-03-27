@@ -33,7 +33,7 @@ class MultiHeadedAttention(nn.Module):
         
     # 2) Apply attention on all the projected vectors in batch. 
     x, self.attn = self._attention(query, key, value, mask=mask, 
-                              dropout=self.dropout)
+                              dropout=self._dropout)
         
     # 3) "Concat" using a view and apply a final linear. 
     x = x.transpose(1, 2).contiguous() \

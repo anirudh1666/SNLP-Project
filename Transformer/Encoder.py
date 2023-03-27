@@ -13,5 +13,5 @@ class Encoder(nn.Module):
 
   def forward(self, x, mask):
     x2 = self._attn(x, x, x, mask)
-    x = self._norm(x + x2) # residual + layer norm
+    x = self._norm1(x + x2) # residual + layer norm
     return self._norm2(x + self._ff(x))

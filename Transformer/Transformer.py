@@ -26,7 +26,7 @@ class Transformer(nn.Module):
     for encoder in self._encoders:
       src_embed = encoder(src_embed, src_mask)
     encoder_out = self._encoder_norm(src_embed)
-    print('got here')
+
     tgt_embed = self._tgt_pos_encoder(tgt)
     x = tgt_embed
     for decoder in self._decoders:
