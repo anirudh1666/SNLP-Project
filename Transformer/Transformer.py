@@ -22,15 +22,20 @@ class Transformer(nn.Module):
             nn.init.xavier_uniform(p)
 
   def forward(self, src, tgt, src_mask, tgt_mask):
+    enc_out = self.encode(src, src_mask)
+    dec_out = self.decode(enc_out, src_mask, tgt, tgt_mask)
+
+    return F.log_softmax(self._word_gen(dec_out), dim=-1)
+  
+  def encode(self, src, src_mask):
     src_embed = self._src_pos_encoder(src)
     for encoder in self._encoders:
       src_embed = encoder(src_embed, src_mask)
-    encoder_out = self._encoder_norm(src_embed)
-
+    return self._encoder_norm(src_embed)
+  
+  def decode(self, enc_out, src_mask, tgt, tgt_mask):
     tgt_embed = self._tgt_pos_encoder(tgt)
     x = tgt_embed
     for decoder in self._decoders:
-      x = decoder(x, encoder_out, src_mask, tgt_mask)
-    decoder_out = self._decoder_norm(x)
-
-    return F.log_softmax(self._word_gen(decoder_out), dim=-1)
+      x = decoder(x, enc_out, src_mask, tgt_mask)
+    return self._decoder_norm(x)

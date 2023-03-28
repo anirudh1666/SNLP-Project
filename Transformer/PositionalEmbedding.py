@@ -22,6 +22,5 @@ class PositionalEmbedding(nn.Module):
 
   def forward(self, x):
     x = math.sqrt(self._d_model) * self._embeddings(x)
-
     x += Variable(self.pe[:, :x.size(1)], requires_grad=False)
     return self._dropout(x)

@@ -16,7 +16,7 @@ class Batch:
         tgt_mask = tgt_mask & self._subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
         return tgt_mask 
 
-    def _subsequent_mask(self, size):
+    def subsequent_mask(self, size):
         shape = (1, size, size)
         subsequent_mask = np.triu(np.ones(shape), k=1).astype('uint8')
         return torch.from_numpy(subsequent_mask) == 0
