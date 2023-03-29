@@ -1,8 +1,8 @@
 import torch 
 import torch.nn as nn 
-from multiheadedattention import MultiHeadedAttention
-from mhcompressedattention import MemoryCompressedAttention
-from feedforward import FeedForward
+from utils.transformer.multiheadedattention import MultiHeadedAttention
+from utils.transformer.mhcompressedattention import MemoryCompressedAttention
+from utils.transformer.feedforward import FeedForward
 
 class Encoder(nn.Module):
   def __init__(self, dropout, h, d_model, d_ff, compressed=False):

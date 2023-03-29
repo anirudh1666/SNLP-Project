@@ -1,4 +1,4 @@
-from models.Transformer import Transformer, MemoryCompressedTransformer
+from models.MemoryCompressedTransformer import  MemoryCompressedTransformer
 from utils.transformer.labelsmoothing import LabelSmoothing
 from utils.general.batch import Batch
 from utils.transformer.noamopt import NoamOpt
@@ -116,7 +116,7 @@ def greedy_decode(model, src, src_mask, max_len, start_symbol):
     return ys
 
 if __name__ == '__main__':
-    data = pickle.load(open('english-german-both.pkl', 'rb'))
+    data = pickle.load(open('src/english-german-both.pkl', 'rb'))
     X, y, src_vocab_len, tgt_vocab_len, encoder, decoder = preprocess(data)
 
     # transformer = Transformer(src_vocab_len, tgt_vocab_len, N=2)

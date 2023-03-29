@@ -5,7 +5,7 @@ from utils.transformer.positionalembedding import PositionalEmbedding
 from utils.transformer.encoder import Encoder
 from utils.transformer.decoder import Decoder
 
-class Transformer(nn.Module):
+class MemoryCompressedTransformer(nn.Module):
   def __init__(self, src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
     super().__init__()
     self._encoders = nn.ModuleList([Encoder(dropout, h, d_model, d_ff, compressed=True) for _ in range(N)])

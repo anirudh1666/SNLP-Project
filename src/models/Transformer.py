@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F 
-from PositionalEmbedding import PositionalEmbedding
-from Encoder import Encoder
-from Decoder import Decoder
+from utils.transformer.positionalembedding import PositionalEmbedding
+from utils.transformer.encoder import Encoder
+from utils.transformer.decoder import Decoder
 
 class Transformer(nn.Module):
   def __init__(self, src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
