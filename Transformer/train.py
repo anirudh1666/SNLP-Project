@@ -1,4 +1,5 @@
 from Transformer import Transformer
+from LabelSmoothing import LabelSmoothing
 from Batch import Batch
 from NoamOpt import NoamOpt
 import pickle
@@ -118,8 +119,8 @@ if __name__ == '__main__':
     data = pickle.load(open('english-german-both.pkl', 'rb'))
     X, y, src_vocab_len, tgt_vocab_len, encoder, decoder = preprocess(data)
 
-    transformer = Transformer(src_vocab_len, tgt_vocab_len)
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+    transformer = Transformer(src_vocab_len, tgt_vocab_len, N=2)
+    criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.0)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(transformer.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
 
     BATCH_SIZE = 50 # 1000 % 50 == 0 so batch size evenly divides total training set size
@@ -130,18 +131,15 @@ if __name__ == '__main__':
     start = decoder.encode("<s>")[0]
     print('\nStarting Training')
     for epoch in range(EPOCHS):
-        transformer.train()
+        transformer.train() 
 
         for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
             out = transformer(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-            loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1)) / batch.ntokens
+            loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
             loss.backward()
             optimiser.step()
             optimiser.optimizer.zero_grad()
             
-            #if i % 10 == 0:
-            #    print(loss.item() * batch.ntokens)
-
         transformer.eval()
         pred = greedy_decode(transformer, test, test_pad, max_len, start)
         print(f'EPOCH: {epoch}. I am an Expert - {decoder.decode(pred.squeeze(0))}')

@@ -35,7 +35,6 @@ class Transformer(nn.Module):
   
   def decode(self, enc_out, src_mask, tgt, tgt_mask):
     tgt_embed = self._tgt_pos_encoder(tgt)
-    x = tgt_embed
     for decoder in self._decoders:
-      x = decoder(x, enc_out, src_mask, tgt_mask)
-    return self._decoder_norm(x)
+      tgt_embed = decoder(tgt_embed, enc_out, src_mask, tgt_mask)
+    return self._decoder_norm(tgt_embed)
