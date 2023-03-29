@@ -35,9 +35,9 @@ class DecoderNE(nn.Module):
     self._dropout1 = nn.Dropout(dropout)
     self._dropout2 = nn.Dropout(dropout)
 
-  def forward(self, x, tgt_mask):
+  def forward(self, x, tgt_mask, src_mask=None):
     x2 = self._dropout1(self._self_attn_1(x, x, x, tgt_mask))
     x = self._norm1(x + x2)
-    x2 = self._dropout2(self._self_attn_2(x, x, x))  # does this need mask?
+    x2 = self._dropout2(self._self_attn_2(x, x, x, src_mask))  # does this need mask?
     x = self._norm2(x + x2)
     return self._norm3(x + self._ff(x))
