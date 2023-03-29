@@ -1,4 +1,4 @@
-from models.Transformer import Transformer
+from models.Transformer import Transformer, MemoryCompressedTransformer
 from utils.transformer.labelsmoothing import LabelSmoothing
 from utils.general.batch import Batch
 from utils.transformer.noamopt import NoamOpt
@@ -119,7 +119,8 @@ if __name__ == '__main__':
     data = pickle.load(open('english-german-both.pkl', 'rb'))
     X, y, src_vocab_len, tgt_vocab_len, encoder, decoder = preprocess(data)
 
-    transformer = Transformer(src_vocab_len, tgt_vocab_len, N=2)
+    # transformer = Transformer(src_vocab_len, tgt_vocab_len, N=2)
+    transformer = MemoryCompressedTransformer(src_vocab_len, tgt_vocab_len, N=2)
     criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.0)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(transformer.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
 
