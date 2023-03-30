@@ -20,12 +20,11 @@ class CompressedTransformer(nn.Module):
 
     for p in self.parameters():
         if p.dim() > 1:
-            nn.init.xavier_uniform(p)
+            nn.init.xavier_uniform_(p)
 
   def forward(self, src, tgt, src_mask, tgt_mask):
     enc_out = self.encode(src, src_mask)
     dec_out = self.decode(enc_out, src_mask, tgt, tgt_mask)
-
     return F.log_softmax(self._word_gen(dec_out), dim=-1)
   
   def encode(self, src, src_mask):
