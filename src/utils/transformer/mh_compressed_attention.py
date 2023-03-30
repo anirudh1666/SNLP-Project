@@ -26,12 +26,18 @@ class MemoryCompressedAttention(nn.Module):
             p_attn = dropout(p_attn)
         return torch.matmul(p_attn, value), p_attn
 
-    def forward(self, query, key, value, mask=None):
-        if mask is not None:
-          mask = mask.unsqueeze(1)
-        nbatches = query.size(0)
+    def compress_mask(self, mask, cf, padding):
+        mask = F.pad(mask.T, (0, 0, 0, padding), value=1)
+        sl, emb = mask.shape
+        new_mask = torch.zeros((sl//cf, emb))
+        for i in range(sl//cf):
+          val = torch.min(mask[i*cf:(i+1)*cf])
+          new_mask[i] += val
+        return new_mask.T.type(torch.bool)
 
-        _, _, l = query.shape
+    def forward(self, query, key, value, mask=None):
+    
+        b, l, _ = query.shape
 
         # 1) Compress key and values, use padding if seq len not divisible by compress ratio
         padding = self._cr - (l % self._cr)
@@ -41,10 +47,10 @@ class MemoryCompressedAttention(nn.Module):
 
         key, value = map(self._memcomp, (key, value))
 
-    
+        mask = self.compress_mask(mask, self._cr, padding)
         # 2) Do all the linear projections in batch from d_model => h x d_k 
         query, key, value = \
-            [l(x).view(nbatches, -1, self.h, self._d_k).transpose(1, 2)
+            [l(x).view(b, -1, self.h, self._d_k).transpose(1, 2)
               for l, x in zip(self._projectors, (query, key, value))]
             
         # 3) Apply attention on all the projected vectors in batch. 
@@ -53,5 +59,5 @@ class MemoryCompressedAttention(nn.Module):
             
         # 4) "Concat" using a view and apply a final linear. 
         x = x.transpose(1, 2).contiguous() \
-              .view(nbatches, -1, self.h * self._d_k)
+              .view(b, -1, self.h * self._d_k)
         return self._projectors[-1](x)
