@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F 
-from PositionalEmbedding import PositionalEmbedding
-from Encoder import Encoder
-from Decoder import DecoderNE
+from utils.transformer.positional_embedding import PositionalEmbedding
+from utils.transformer.encoder import Encoder
+from utils.transformer.decoder import DecoderNE
 
 class DecoderOnlyTransformer(nn.Module):
   def __init__(self, src_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, compressed=False):
@@ -11,7 +11,7 @@ class DecoderOnlyTransformer(nn.Module):
     self._decoders = nn.ModuleList([DecoderNE(d_model, h, d_ff, dropout, compressed=compressed) for _ in range(N)])
     self._decoder_norm = nn.LayerNorm(d_model)
     self._src_pos_encoder = PositionalEmbedding(src_vocab, d_model, dropout)
-    self._word_gen = nn.Linear(d_model, tgt_vocab)
+    self._word_gen = nn.Linear(d_model, src_vocab)
 
     for p in self.parameters():
         if p.dim() > 1:

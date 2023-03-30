@@ -1,5 +1,6 @@
 from torchnlp.encoders.text import DelimiterEncoder
 import torch 
+import numpy as np
 from utils.general.batch import Batch
 
 """
@@ -70,3 +71,8 @@ def data_iterator(batch_size, X, y):
         y_batch = y[i * batch_size: (i + 1) * batch_size, :]
 
         yield Batch(X_batch, y_batch, 0)
+
+def subsequent_mask(size):
+    shape = (1, size, size)
+    subsequent_mask = np.triu(np.ones(shape), k=1).astype('uint8')
+    return torch.from_numpy(subsequent_mask) == 0

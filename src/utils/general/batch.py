@@ -1,5 +1,6 @@
 import torch 
 import numpy as np
+from utils.general.data_tools import subsequent_mask
 
 class Batch:
     def __init__(self, src, tgt=None, pad=0):
@@ -13,10 +14,5 @@ class Batch:
 
     def _make_std_mask(self, tgt, pad):
         tgt_mask = (tgt != pad).unsqueeze(-2)
-        tgt_mask = tgt_mask & self._subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
+        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
         return tgt_mask 
-
-    def _subsequent_mask(self, size):
-        shape = (1, size, size)
-        subsequent_mask = np.triu(np.ones(shape), k=1).astype('uint8')
-        return torch.from_numpy(subsequent_mask) == 0
