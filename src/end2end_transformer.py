@@ -42,6 +42,7 @@ if __name__ == '__main__':
     test_padding = (X != 0).unsqueeze(0)
     test_len = len(X[0])
     start_symbol = decoder.encode('<s>')[0]
+    end_symbol = decoder.encode('</s>')[0]
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     abstractor.to(device)
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     y.to(device)
 
     BATCH_SIZE = 1
-    EPOCHS = 10
+    EPOCHS = 1000
     print('\nStarting Training\n')
     for epoch in range(EPOCHS):
         abstractor.train()
@@ -60,13 +61,12 @@ if __name__ == '__main__':
             optimiser.step()
             optimiser.optimizer.zero_grad()
         
-        abstractor.eval()
         print(f'EPOCH: {epoch} completed')
-        gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol)
-        decoded = decoder.decode(gpred)
-        print(decoded)
-        print(test_article_en)
-        print()
-        print()
+    gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
+    decoded = decoder.decode(gpred)
+    print(decoded)
+    print(test_article_en)
+    print()
+    print()
 
 
