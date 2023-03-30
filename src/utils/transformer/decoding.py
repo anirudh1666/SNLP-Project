@@ -59,14 +59,16 @@ def beam_search(model, src, src_mask, max_len, start_symbol, end_symbol, beam_wi
             curr_ys = possible_ys[branch]
             if curr_ys[0, -1] == end_symbol:
                 # terminated branch. No point expanding, just see if there are any alternative higher prob expansions in other branches
-                probs[prob_idx] = branch_probs[branch]
-                branches[prob_idx] = curr_ys
-                prob_idx += 1
+                for k in range(beam_width):
+                    probs[prob_idx] = branch_probs[branch]
+                    branches[prob_idx] = curr_ys
+                    prob_idx += 1
+                
                 continue
-
+            
+            # not terminated. Get top k results.
             out = model.decode(enc_out, src_mask, curr_ys, subsequent_mask(curr_ys.size(1)).type_as(src.data))
             top_probs, top_words = get_topk(model, out, beam_width)
-
             for k in range(beam_width):
                 probs[prob_idx] = branch_probs[branch] + score(curr_ys, top_probs[0, k], length_penalty)
                 branches[prob_idx] = torch.cat([curr_ys, torch.zeros(1, 1).fill_(top_words[0, k]).type_as(src.data)], dim=1)
