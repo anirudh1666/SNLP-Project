@@ -2,6 +2,7 @@ from models.MemoryCompressedTransformer import  MemoryCompressedTransformer
 from models.Transformer import Transformer
 from utils.transformer.label_smoothing import LabelSmoothing
 from utils.general.data_tools import preprocess, data_iterator, subsequent_mask
+from utils.transformer.decoding import greedy_decode, beam_search
 from utils.transformer.noam_opt import NoamOpt
 import pickle
 import torch
@@ -53,8 +54,8 @@ if __name__ == '__main__':
             optimiser.optimizer.zero_grad()
             
         transformer.eval()
-        gpred = transformer.greedy_decode(test, test_pad, max_len, start).squeeze(0)
-        bpred = transformer.beam_search(test, test_pad, max_len, start, 3).squeeze(0)
-        b1pred = transformer.beam_search(test, test_pad, max_len, start, 1).squeeze(0)
+        gpred = greedy_decode(transformer, test, test_pad, max_len, start).squeeze(0)
+        bpred = beam_search(transformer, test, test_pad, max_len, start, 3).squeeze(0)
+        b1pred = beam_search(transformer, test, test_pad, max_len, start, 1).squeeze(0)
         print(f'I am an Expert - Beam Search: {decoder.decode(bpred)} | Greedy Search: {decoder.decode(gpred)} | Psuedo-Greedy: {decoder.decode(b1pred)}')
     transformer.save()
