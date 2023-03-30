@@ -41,8 +41,8 @@ class Transformer(nn.Module):
     return self._decoder_norm(tgt_embed)
   
   def save(self, path=None):
-    torch.save(self.state_dict(), os.getcwd() if path == None else path)
+    torch.save(self.state_dict(), (str(os.getcwd()) + 'model.pth') if path == None else path)
   
-  def load(self, path=None):
-    self.load_state_dict(torch.load(os.getcwd() if path == None else path))
+  def load(self, path):
+    self.load_state_dict(torch.load(path))
     self.eval()
