@@ -5,12 +5,9 @@ from utils.transformer.mh_compressed_attention import MemoryCompressedAttention
 from utils.transformer.feedforward import FeedForward
 
 class Encoder(nn.Module):
-  def __init__(self, dropout, h, d_model, d_ff, compressed=False):
+  def __init__(self, dropout, h, d_model, d_ff):
     super().__init__()
-    if not compressed:
-      self._attn = MultiHeadedAttention(h, d_model)
-    else:
-      self._attn = MemoryCompressedAttention(h, d_model)
+    self._attn = MultiHeadedAttention(h, d_model)
     self._ff = FeedForward(d_model, d_ff, dropout)
     self._norm1 = nn.LayerNorm(d_model)
     self._norm2 = nn.LayerNorm(d_model)
