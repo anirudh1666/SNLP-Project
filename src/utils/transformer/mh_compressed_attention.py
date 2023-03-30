@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import numpy as np
+import itertools
 from utils.transformer.memory_compression import MemoryCompress
 
 class MemoryCompressedAttention(nn.Module):
@@ -26,16 +28,13 @@ class MemoryCompressedAttention(nn.Module):
             p_attn = dropout(p_attn)
         return torch.matmul(p_attn, value), p_attn
 
-    def compress_mask(self, mask, cf, padding):
-        mask = F.pad(mask.T, (0, 0, 0, padding), value=1)
-        sl, emb = mask.shape
-        new_mask = torch.zeros((sl//cf, emb))
-        for i in range(sl//cf):
-          val = torch.min(mask[i*cf:(i+1)*cf])
-          new_mask[i] += val
-        return new_mask.T.type(torch.bool)
+    def _compress_sub_mask(self, seq_length, comp_length, cf):
+        subsequent_mask = np.triu(np.ones((comp_length, comp_length)), k=1).astype('uint8')
+        subsequent_mask = np.stack(itertools.chain.from_iterable([[m]*cf for m in subsequent_mask]))
+        trim = comp_length*cf - seq_length
+        return (torch.from_numpy(subsequent_mask) == 0)[:-trim]
 
-    def forward(self, query, key, value, mask=None):
+    def forward(self, query, key, value, padding_mask=None):
     
         b, l, _ = query.shape
 
@@ -46,8 +45,9 @@ class MemoryCompressedAttention(nn.Module):
             key, value = map(lambda t: F.pad(t, (0, 0, padding, 0)), (key, value))
 
         key, value = map(self._memcomp, (key, value))
+        compressed_size = key.shape[-2]
+        mask = self._compress_sub_mask(l, compressed_size, l//compressed_size + 1)
 
-        mask = self.compress_mask(mask, self._cr, padding)
         # 2) Do all the linear projections in batch from d_model => h x d_k 
         query, key, value = \
             [l(x).view(b, -1, self.h, self._d_k).transpose(1, 2)
