@@ -29,7 +29,7 @@ def beam_search(model, src, src_mask, max_len, start_symbol, end_symbol, beam_wi
     score = lambda seq, log_prob, alpha: log_prob / ((5 + len(seq))**alpha / 6**alpha)
     # the ranking is done as log_prob / penalty. However, when we rank the sequences, the length is the same
     # so the penalty is constant in a given iteration of i. Thus, we do not have to apply the scoring to all, only the
-    # ones with the highest log_probability
+    # ones with the highest log_probability. See Wu et al 2016.
 
     enc_out = model.encode(src, src_mask)
     possible_ys = [torch.zeros(1, 1).fill_(start_symbol).type_as(src.data) for _ in range(beam_width)]
@@ -61,6 +61,7 @@ def beam_search(model, src, src_mask, max_len, start_symbol, end_symbol, beam_wi
                 # terminated branch. No point expanding, just see if there are any alternative higher prob expansions in other branches
                 probs[prob_idx] = branch_probs[branch]
                 branches[prob_idx] = curr_ys
+                prob_idx += 1
                 continue
 
             out = model.decode(enc_out, src_mask, curr_ys, subsequent_mask(curr_ys.size(1)).type_as(src.data))
