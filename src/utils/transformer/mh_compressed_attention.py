@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from utils.transformer.memorycompression import MemoryCompress
+from utils.transformer.memory_compression import MemoryCompress
 
 class MemoryCompressedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1, compress_ratio=3):

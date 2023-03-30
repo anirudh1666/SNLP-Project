@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F 
-from utils.transformer.positionalembedding import PositionalEmbedding
+from utils.transformer.positional_embedding import PositionalEmbedding
 from utils.transformer.encoder import Encoder
 from utils.transformer.decoder import Decoder
 

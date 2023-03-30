@@ -1,7 +1,7 @@
 import torch 
 import torch.nn as nn
-from utils.transformer.multiheadedattention import MultiHeadedAttention
-from utils.transformer.mhcompressedattention import MemoryCompressedAttention
+from utils.transformer.multiheaded_attention import MultiHeadedAttention
+from utils.transformer.mh_compressed_attention import MemoryCompressedAttention
 from utils.transformer.feedforward import FeedForward
 
 class Decoder(nn.Module):
@@ -28,7 +28,7 @@ class Decoder(nn.Module):
     """
 
     super().__init__()
-    
+
     if not compressed:
       self._self_attn = MultiHeadedAttention(h, d_model)
       self._src_attn = MultiHeadedAttention(h, d_model)
