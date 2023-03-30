@@ -15,7 +15,7 @@ def greedy_decode(model, src, src_mask, max_len, start_symbol):
                 [ys, torch.zeros(1, 1).type_as(src.data).fill_(next_word)], dim=1
             )
       
-    return ys
+    return ys.squeeze(0)
 
 def get_topk(model, out, beam_width):
     log_prob = F.log_softmax(model._word_gen(out[:, -1]), dim=-1)
@@ -34,11 +34,11 @@ def beam_search(model, src, src_mask, max_len, start_symbol, beam_width, length_
 
     # initial beam search for start token
     curr_ys = possible_ys[0]
-    out = model.decode(enc_out, src_mask, curr_ys[0], subsequent_mask(curr_ys.size(1)).type_as(src.data))
+    out = model.decode(enc_out, src_mask, curr_ys, subsequent_mask(curr_ys.size(1)).type_as(src.data))
     top_probs, top_words = get_topk(model, out, beam_width)
     for k in range(beam_width):
-        branch_probs[k] += score(curr_ys[0], top_probs[0, k], length_penalty)
-        possible_ys[k] = torch.cat([curr_ys[0], torch.zeros(1, 1).fill_(top_words.data[0, k]).type_as(src.data)], dim=1)
+        branch_probs[k] += score(curr_ys, top_probs[0, k], length_penalty)
+        possible_ys[k] = torch.cat([curr_ys, torch.zeros(1, 1).fill_(top_words.data[0, k]).type_as(src.data)], dim=1)
 
     for i in range(1, max_len - 1):
         branches = [None for _ in range(beam_width * beam_width)]
@@ -61,5 +61,5 @@ def beam_search(model, src, src_mask, max_len, start_symbol, beam_width, length_
             branch_probs[j] = top_probs[j]
     
     _, top_sequence_idx = torch.max(branch_probs, dim=0)
-    return possible_ys[top_sequence_idx]
+    return possible_ys[top_sequence_idx].squeeze(0)
   
