@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from utils.transformer.multiheaded_attention import MultiHeadedAttention
 from utils.transformer.mh_compressed_attention import MemoryCompressedAttention
+from utils.transformer.local_attention import LocalAttention
 from utils.transformer.feedforward import FeedForward
 
 class Decoder(nn.Module):
@@ -89,5 +90,26 @@ class DecoderNE(nn.Module):
     x2 = self._dropout1(self._self_attn_1(x, x, x, tgt_mask))
     x = self._norm1(x + x2)
     x2 = self._dropout2(self._self_attn_2(x, x, x, src_mask))  # does this need mask?
+    x = self._norm2(x + x2)
+    return self._norm3(x + self._ff(x))
+
+
+class DecoderLocal(nn.Module):
+  def __init__(self, d_model, h, d_ff, dropout, split=3):
+    super().__init__()
+    self._self_attn_1 = LocalAttention(h, d_model, split=split)
+    self._self_attn_2 = MultiHeadedAttention(h, d_model)
+      
+    self._ff = FeedForward(d_model, d_ff, dropout)
+    self._norm1 = nn.LayerNorm(d_model)
+    self._norm2 = nn.LayerNorm(d_model)
+    self._norm3 = nn.LayerNorm(d_model)
+    self._dropout1 = nn.Dropout(dropout)
+    self._dropout2 = nn.Dropout(dropout)
+
+  def forward(self, x, encoder_output, src_mask, tgt_mask):
+    x2 = self._dropout1(self._self_attn_1(x, tgt_mask))
+    x = self._norm1(x + x2)
+    x2 = self._dropout2(self._self_attn_2(x, encoder_output, encoder_output, src_mask))
     x = self._norm2(x + x2)
     return self._norm3(x + self._ff(x))
