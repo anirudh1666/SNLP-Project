@@ -29,7 +29,7 @@ if __name__ == '__main__':
     data = pickle.load(open('src/english-german-both.pkl', 'rb'))
     X, y, src_vocab_len, tgt_vocab_len, encoder, decoder = preprocess(data)
 
-    transformer = Transformer(src_vocab_len, tgt_vocab_len, N=3)
+    transformer = Transformer(src_vocab_len, tgt_vocab_len, N=2)
     
     #transformer = MemoryCompressedTransformer(src_vocab_len, tgt_vocab_len, N=2)
     criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.0)

@@ -1,7 +1,6 @@
 from torchnlp.encoders.text import DelimiterEncoder
 import torch 
 import numpy as np
-from utils.general.batch import Batch
 
 """
     Tools that are necessary to fetch and prepare the data to go into the models.
@@ -57,6 +56,21 @@ def preprocess(data):
     de_train = torch.stack(de_tensors)
 
     return eng_train, de_train, encoder_vocab_len, decoder_vocab_len, encoder, decoder
+
+class Batch:
+    def __init__(self, src, tgt=None, pad=0):
+        self.src = src
+        self.src_mask = (src != pad).unsqueeze(-2)
+        if tgt is not None:
+            self.tgt = tgt[:, :-1] # shift right
+            self.tgt_y = tgt[:, 1:]
+            self.tgt_mask = self._make_std_mask(self.tgt, pad)
+            self.ntokens = (self.tgt_y != pad).data.sum()
+
+    def _make_std_mask(self, tgt, pad):
+        tgt_mask = (tgt != pad).unsqueeze(-2)
+        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
+        return tgt_mask 
 
 def data_iterator(batch_size, X, y):
     """

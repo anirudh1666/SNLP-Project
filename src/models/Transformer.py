@@ -1,10 +1,10 @@
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F 
 from utils.transformer.positional_embedding import PositionalEmbedding
 from utils.transformer.encoder import Encoder
 from utils.transformer.decoder import Decoder
+import os
 
 class Transformer(nn.Module):
   def __init__(self, src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
@@ -40,9 +40,9 @@ class Transformer(nn.Module):
       tgt_embed = decoder(tgt_embed, enc_out, src_mask, tgt_mask)
     return self._decoder_norm(tgt_embed)
   
-  def save(self):
-    torch.save(self.state_dict())
+  def save(self, path=None):
+    torch.save(self.state_dict(), os.getcwd() if path == None else path)
   
-  def load(self, path):
-    self.load_state_dict(torch.load(path))
+  def load(self, path=None):
+    self.load_state_dict(torch.load(os.getcwd() if path == None else path))
     self.eval()
