@@ -1,7 +1,6 @@
 from models.transformer_ed import Transformer
 from summarizer import Summarizer, TransformerSummarizer
-from utils.general.extract_articles import getArticles
-from utils.general.data_tools import preprocess, data_iterator, setup_GPU
+from utils.general.data_tools import preprocess, data_iterator, setup_GPU, get_extracted, getArticles
 from utils.transformer.decoding import greedy_decode, beam_search
 from utils.transformer.label_smoothing import LabelSmoothing
 from utils.transformer.noam_opt import NoamOpt
@@ -10,36 +9,23 @@ import torch
 import os
 import time
 
-def extract_summaries(articles, L=100, extractor=Summarizer()):
-    """
-        Loop through articles : list of strings
-            extracted text = extractor(article)
-            take the first L words of the extracted
-        returns a list of extracted text where they are all <= L words long
-    """
-    extracted = [None for _ in range(len(articles))]
-    for i, article in enumerate(articles):
-        extracted[i] = ' '.join(extractor(article).split(' ')[:L])
-    return extracted
-
 if __name__ == '__main__':
+    N = 20 # how many articles to take in.
+    L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
+    EPOCHS = 25 
+    BATCH_SIZE = 5
+    SOS_SYMBOL = '<s>'
+    SEP_SYMBOL = '<sep>'
+    EOS_SYMBOL = '</s>'
 
     # filepaths to data - varies per person
     train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
     train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
 
-    N = 20 # how many articles to take in.
-    L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
-    EPOCHS = 25 
-    BATCH_SIZE = 5
-
-    articles = getArticles(train_src_fp, N=N) 
-    articles_str = [' '.join(article) for article in articles] # joins the paragraphs into articles
-    extracted_articles = extract_summaries(articles_str, L=L)
-    tgts = getArticles(train_tgt_fp, N=N)
-    tgts_str = [' '.join(summary) for summary in tgts]
-
-    train = np.array([[t1, t2] for t1, t2 in zip(extracted_articles, tgts_str)]) # each nested list [extracted text, abstracted text] N x 2
+    extracted_articles = get_extracted(train_src_fp, N=N, L=L)
+    tgts = [' '.join(summary) for summary in getArticles(train_tgt_fp, N=N)]
+    train = np.array([[t1, t2] for t1, t2 in zip(extracted_articles, tgts)]) # each nested list [extracted text, abstracted text] N x 2
+    
     # returns X (prepend SOS, append EOS, padding so theyre all the same len, indices)
     # y is the corresponding abstracted summary N x 1 (prepend SOS, appened EOS, padding so theyre all the same len, indices). List of integers corresponding to words 
     # src_vocab_len # of unique words in input articles
@@ -47,16 +33,16 @@ if __name__ == '__main__':
     # encoder is a look-up table that maps list of integers to sequences
     # decoder is a look-up table that maps list ofintegers to sequences
     X, y, src_vocab_len, tgt_vocab_len, encoder, decoder = preprocess(train) 
+    test_article = X[0].unsqueeze(0)
+    test_article_en = encoder.decode(test_article.squeeze(0))
+    test_padding = (test_article != 0).unsqueeze(0)
+    test_len = len(test_article)
+    start_symbol = decoder.encode(SOS_SYMBOL)[0]
+    end_symbol = decoder.encode(EOS_SYMBOL)[0]
+
     abstractor = Transformer(src_vocab_len, tgt_vocab_len)
     criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.1)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-
-    test_article = X[0].unsqueeze(0) # [ich] -> [[ich]]
-    test_article_en = encoder.decode(test_article.squeeze(0))
-    test_padding = (X[0] != 0).unsqueeze(0)
-    test_len = len(X[0])
-    start_symbol = decoder.encode('<s>')[0]
-    end_symbol = decoder.encode('</s>')[0]
 
     setup_GPU(abstractor, X, y)
 
