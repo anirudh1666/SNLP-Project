@@ -1,10 +1,38 @@
 from torchnlp.encoders.text import DelimiterEncoder
 import torch 
 import numpy as np
+from summarizer import Summarizer
 
 """
     Tools that are necessary to fetch and prepare the data to go into the models.
 """
+
+def getArticles(filePath, Start=0, N=1):
+    """
+        Starting from the specified article, reads N articles. 
+        Then splits each articles into paragraphs.
+        Define the file path of the document you want to read through.
+        Returns:
+            List<List<String>>: Returns a List of all articles, each article returns a list of paragraphs.
+    """
+    with open(filePath, 'rb') as file:
+        a = 0
+        text = []
+        while a != Start:
+            file.readline()
+            a += 1
+            
+        for line in file:
+            text.append(line.decode('utf-8', 'ignore').encode('ascii', 'ignore').decode('ascii'))
+            a += 1
+            if a == N:
+                break
+
+    main = []
+    for article in text:
+        main.append(article.split('<EOP>'))
+    
+    return main
 
 def setup_GPU(model, X, y=None):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -64,6 +92,18 @@ def preprocess(data):
     de_train = torch.stack(de_tensors)
 
     return eng_train, de_train, encoder_vocab_len, decoder_vocab_len, encoder, decoder
+
+def get_extracted(fp, N, L=100, extractor=Summarizer()):
+    articles = getArticles(fp, N=N)
+    articles_str = [' '.join(article) for article in articles] 
+    return extract_summaries(articles_str, L, extractor)
+
+def extract_summaries(articles, L, extractor):
+    extract_first_L = lambda x: ' '.join(x.split(' ')[:L])
+    extracted = [None for _ in range(len(articles))]
+    for i, article in enumerate(articles):
+        extracted[i] = extract_first_L(extractor(article))
+    return extracted
 
 class Batch:
     def __init__(self, src, tgt=None, pad=0):

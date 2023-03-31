@@ -5,24 +5,11 @@ from utils.transformer.noam_opt import NoamOpt
 import torch.nn.functional as F
 from summarizer import Summarizer
 from utils.transformer.decoding import greedy_decode_decoder_only
-from utils.general.extract_articles import getArticles
-from utils.general.data_tools import setup_GPU, data_iterator
+from utils.general.data_tools import setup_GPU, data_iterator, get_extracted, getArticles
 import numpy as np
 import torch
 import time
 import os
-
-def get_extracted(fp, N, L=100, extractor=Summarizer()):
-    articles = getArticles(fp, N=N)
-    articles_str = [' '.join(article) for article in articles] 
-    return extract_summaries(articles_str, L, extractor)
-
-def extract_summaries(articles, L, extractor):
-    extract_first_L = lambda x: ' '.join(x.split(' ')[:L])
-    extracted = [None for _ in range(len(articles))]
-    for i, article in enumerate(articles):
-        extracted[i] = extract_first_L(extractor(article))
-    return extracted
 
 def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
     max_len = 0
@@ -71,7 +58,7 @@ if __name__ == '__main__':
 
     abstractor = TransformerDecoder(src_vocab_len)
     criterion = LabelSmoothing(size=src_vocab_len, padding_idx=0, smoothing=0.1)
-    optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
+    optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0.1, betas=(0.9, 0.98), eps=1e-9))
 
     setup_GPU(abstractor, X)
 
