@@ -28,10 +28,10 @@ def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
     return tensors, len(encoder.vocab), encoder
 
 if __name__ == '__main__':
-    N = 1
-    L = 500
-    EPOCHS = 1000
-    BATCH_SIZE = 1
+    N = 1000
+    L = 1000
+    EPOCHS = 200
+    BATCH_SIZE = 10
     SOS_SYMBOL = '<s>'
     SEP_SYMBOL = '<sep>'
     EOS_SYMBOL = '</s>'
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     del extracted_articles
     del tgts 
 
-    abstractor = TransformerDecoder(src_vocab_len)
+    abstractor = TransformerDecoder(src_vocab_len, N=12)
     criterion = LabelSmoothing(size=src_vocab_len, padding_idx=0, smoothing=0.1)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
 

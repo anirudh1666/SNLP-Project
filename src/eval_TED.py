@@ -27,6 +27,8 @@ if __name__ == '__main__':
     del tgts
     del train 
 
+    start_symbol = decoder.encode(SOS_SYMBOL)[0]
+    end_symbol = decoder.encode(EOS_SYMBOL)[0]
     abstractor = Transformer(src_vocab_len, tgt_vocab_len)
     abstractor.load(MODEL_PATH)
 
