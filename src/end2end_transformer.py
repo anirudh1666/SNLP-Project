@@ -1,13 +1,14 @@
-from models.Transformer import Transformer
+from models.transformer_ed import Transformer
 from summarizer import Summarizer, TransformerSummarizer
 from utils.general.extract_articles import getArticles
-from utils.general.data_tools import preprocess, data_iterator
+from utils.general.data_tools import preprocess, data_iterator, setup_GPU
 from utils.transformer.decoding import greedy_decode, beam_search
 from utils.transformer.label_smoothing import LabelSmoothing
 from utils.transformer.noam_opt import NoamOpt
 import numpy as np
 import torch
 import os
+import time
 
 def extract_summaries(articles, L=100, extractor=Summarizer()):
     """
@@ -26,13 +27,12 @@ if __name__ == '__main__':
     # filepaths to data - varies per person
     train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
     train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
-    val_src_fp = '../datasets/animal_tok_min5_L7.5k/valid.raw.src'
-    val_tgt_fp = '../datasets/animal_tok_min5_L7.5k/valid.raw.tgt'
-    test_src_fp = '../datasets/animal_tok_min5_L7.5k/test.raw.src'
-    test_tgt_fp = '../datasets/animal_tok_min5_L7.5k/test.raw.src'
 
-    N = 1 # how many articles to take in.
+    N = 20 # how many articles to take in.
     L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
+    EPOCHS = 25 
+    BATCH_SIZE = 5
+
     articles = getArticles(train_src_fp, N=N) 
     articles_str = [' '.join(article) for article in articles] # joins the paragraphs into articles
     extracted_articles = extract_summaries(articles_str, L=L)
@@ -53,38 +53,37 @@ if __name__ == '__main__':
 
     test_article = X[0].unsqueeze(0) # [ich] -> [[ich]]
     test_article_en = encoder.decode(test_article.squeeze(0))
-    test_padding = (X != 0).unsqueeze(0)
+    test_padding = (X[0] != 0).unsqueeze(0)
     test_len = len(X[0])
     start_symbol = decoder.encode('<s>')[0]
     end_symbol = decoder.encode('</s>')[0]
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    abstractor.to(device)
-    X.to(device)
-    y.to(device)
+    setup_GPU(abstractor, X, y)
 
-    # MAX ARTICLES = 200. EPOCHS = 25. BATCH SIZE = 20. L = 500. 
-    BATCH_SIZE = 1   # < 32 and divide N.
-    EPOCHS = 1       # how many times you want to iterate over the entire dataset
     print('\nStarting Training\n')
     for epoch in range(EPOCHS):
         abstractor.train()
+        start = time.time()
+        total_loss = 0
         for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
+            # 20 articles, batch size = 5, i = 0..3
+            print(f'Batch {i} / 3 completed')
+
             out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
             loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
+            total_loss += loss
             loss.backward()
             optimiser.step()
             optimiser.optimizer.zero_grad()
         
-        print(f'EPOCH: {epoch} completed')
+        elapsed = time.time() - start
+        print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
+        total_loss = 0
 
     gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
-    #bpred = beam_search(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol, 1, 0) # should output same as greedy
-    #bpred2 = beam_search(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol, 2, 0.1) 
     decoded = decoder.decode(gpred)
+    abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_25e_20n_500l_5b.pth'))
     print(decoded)
     print(test_article_en)
-    #print(decoder.decode(bpred))
-    #print(decoder.decode(bpred2))
-    abstractor.save(os.path.join(os.getcwd(), 'BERT_TED.pth'))
+    print(decoder.decode(y[0]))
 

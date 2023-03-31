@@ -20,6 +20,26 @@ def greedy_decode(model, src, src_mask, max_len, start_symbol, end_symbol):
       
     return ys.squeeze(0)
 
+def greedy_decode_decoder_only(model, src, max_len, start_symbol, end_symbol, sep_symbol):
+    ys = torch.cat([
+        torch.zeros(1, 1).fill_(start_symbol).type_as(src.data), 
+        ys, 
+        torch.zeros(1, 1).fill_(sep_symbol).type_as(src.data)], dim=1)
+    # feed src <SEPARATOR> into model
+    for _ in range(max_len - 1):
+        if ys[0, -1] == end_symbol:
+            break
+
+        out = model.decode(ys, subsequent_mask(ys.size(1)).type_as(src.data))
+        prob = F.log_softmax(model._word_gen(out[:, -1]), dim=-1)
+        _, next_word = torch.max(prob, dim=1)
+        next_word = next_word.data[0]
+        ys = torch.cat(
+            [ys, torch.zeros(1, 1).type_as(src.data).fill_(next_word)], dim=1
+        )
+
+    return ys.squeeze(0)
+
 def get_topk(model, out, beam_width):
     log_prob = F.log_softmax(model._word_gen(out[:, -1]), dim=-1)
     top_k = torch.topk(log_prob, beam_width, dim=1)

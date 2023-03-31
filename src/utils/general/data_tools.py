@@ -6,6 +6,13 @@ import numpy as np
     Tools that are necessary to fetch and prepare the data to go into the models.
 """
 
+def setup_GPU(model, X, y=None):
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    if y is not None:
+        y.to(device)
+    X.to(device)
+    model.to(device)
+
 def preprocess(data):
     """
         data: List of List of strings. Each nested list contains the input sequence (str dtype) and output sequence (str dtype)
@@ -52,6 +59,7 @@ def preprocess(data):
         eng_tensors.append(eng_encoded)
         de_tensors.append(de_encoded)
 
+    del data
     eng_train = torch.stack(eng_tensors)
     de_train = torch.stack(de_tensors)
 
@@ -72,19 +80,23 @@ class Batch:
         tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
         return tgt_mask 
 
-def data_iterator(batch_size, X, y):
+def data_iterator(batch_size, X, y=None):
     """
         Iterator used to efficiently generate batches to train over. 
 
         X : torch.tensor of shape (# of observations, max input sequence len)
         y : torch.tensor of shape (# of observations, max output sequence len)
     """
-    
-    for i in range(len(X) // batch_size):
-        X_batch = X[i * batch_size: (i + 1) * batch_size, :]
-        y_batch = y[i * batch_size: (i + 1) * batch_size, :]
+    if y is not None:
+        for i in range(len(X) // batch_size):
+            X_batch = X[i * batch_size: (i + 1) * batch_size, :]
+            y_batch = y[i * batch_size: (i + 1) * batch_size, :]
 
-        yield Batch(X_batch, y_batch, 0)
+            yield Batch(X_batch, y_batch, 0)
+    else:
+        for i in range(len(X) // batch_size):
+            X_batch = X[i * batch_size: (i + 1) * batch_size, :]
+            yield Batch(X_batch)
 
 def subsequent_mask(size):
     shape = (1, size, size)

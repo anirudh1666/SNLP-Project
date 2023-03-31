@@ -4,7 +4,7 @@ from utils.transformer.label_smoothing import LabelSmoothing
 from utils.transformer.noam_opt import NoamOpt
 import torch.nn.functional as F
 from summarizer import Summarizer
-from utils.transformer.decoding import greedy_decode
+from utils.transformer.decoding import greedy_decode, greedy_decode_decoder_only
 from utils.general.extract_articles import getArticles
 from utils.general.data_tools import setup_GPU, data_iterator
 import numpy as np
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     L = 500
     EPOCHS = 25 
     BATCH_SIZE = 1
+    SEP_SYMBOL = '<sep>'
 
     train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
     train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
@@ -56,7 +57,8 @@ if __name__ == '__main__':
     tgts_str = [' '.join(summary) for summary in tgts]
 
     # for decoder training, concat src sequence <SEPARATOR TOKEN> tgt sequence.
-    train = np.array([t1 + ' <sep> ' + t2 for t1, t2 in zip(extracted_articles, tgts_str)])
+    # length will be <= 2L
+    train = np.array([t1 + ' ' + SEP_SYMBOL + ' ' + t2 for t1, t2 in zip(extracted_articles, tgts_str)])
     X, src_vocab_len, encoder= decoder_only_preprocess(train)
 
     abstractor = TransformerDecoder(src_vocab_len)
@@ -65,15 +67,16 @@ if __name__ == '__main__':
 
     test_article = X[0].unsqueeze(0)
     test_article_en = encoder.decode(X[0])
-    test_padding = (X != 0).unsqueeze(0)
+    test_padding = (X[0] != 0).unsqueeze(0)
     test_len = len(X[0])
     start_symbol = encoder.encode('<s>')[0]
     end_symbol = encoder.encode('</s>')[0]
+    sep_symbol_enc = encoder.encode('<sep>')[0]
 
     setup_GPU(abstractor, X)
 
     print('\nStarting Training\n')
-    for epoch in range(EPOCHS):
+    '''for epoch in range(EPOCHS):
         abstractor.train()
         start = time.time()
         total_loss = 0
@@ -86,11 +89,11 @@ if __name__ == '__main__':
             optimiser.optimizer.zero_grad()
 
         elapsed = time.time() - start
-        print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
-        total_loss = 0
+        print(f'\nEPOCH: {epoch} completed | Time: {elapsed:.3f} | Loss: {total_loss:.3f}\n')
+        total_loss = 0'''
 
-    gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
+    gpred = greedy_decode_decoder_only(abstractor, test_article, test_len, start_symbol, end_symbol, sep_symbol_enc)
     decoded = encoder.decode(gpred)
-    abstractor.save(os.path.join(os.getcwd(), 'BERT_TD_25e_20n_500l_5b.pth'))
+    #abstractor.save(os.path.join(os.getcwd(), 'BERT_TD_25e_20n_500l_5b.pth'))
     print(decoded)
     print(test_article_en)
