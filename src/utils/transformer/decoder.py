@@ -76,8 +76,8 @@ class DecoderNE(nn.Module):
       self._self_attn_1 = MultiHeadedAttention(h, d_model)
       self._self_attn_2 = MultiHeadedAttention(h, d_model)
     else:
-      self._self_attn_1 = MemoryCompressedAttention(h, d_model, compression_ratio=compressed)
-      self._self_attn_2 = MemoryCompressedAttention(h, d_model, compression_ratio=compressed)
+      self._self_attn_1 = MemoryCompressedAttention(h, d_model, compress_ratio=compressed)
+      self._self_attn_2 = MemoryCompressedAttention(h, d_model, compress_ratio=compressed)
       
     self._ff = FeedForward(d_model, d_ff, dropout)
     self._norm1 = nn.LayerNorm(d_model)
