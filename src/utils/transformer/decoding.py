@@ -26,7 +26,7 @@ def greedy_decode_decoder_only(model, src, max_len, start_symbol, end_symbol, se
         src, 
         torch.zeros(1, 1).fill_(sep_symbol).type_as(src.data)], dim=1)
     # feed "<s> src <sep>" into model
-    for _ in range(10):
+    for _ in range(max_len - 1):
         if ys[0, -1] == end_symbol:
             break
 
@@ -38,7 +38,8 @@ def greedy_decode_decoder_only(model, src, max_len, start_symbol, end_symbol, se
             [ys, torch.zeros(1, 1).type_as(src.data).fill_(next_word)], dim=1
         )
 
-    return ys.squeeze(0)
+    sep_idx = len(src[0]) + 2 # <s> + len(words in src) + <sep> = 2 + len(src)
+    return ys.squeeze(0)[sep_idx:]
 
 def get_topk(model, out, beam_width):
     log_prob = F.log_softmax(model._word_gen(out[:, -1]), dim=-1)
