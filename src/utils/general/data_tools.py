@@ -21,7 +21,7 @@ def getArticles(filePath, Start=0, N=1):
         while a != Start:
             file.readline()
             a += 1
-            
+        a = 0
         for line in file:
             text.append(line.decode('utf-8', 'ignore').encode('ascii', 'ignore').decode('ascii'))
             a += 1
