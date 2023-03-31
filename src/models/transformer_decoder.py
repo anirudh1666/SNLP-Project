@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from utils.transformer.positional_embedding import PositionalEmbedding
 from utils.transformer.encoder import Encoder
 from utils.transformer.decoder import DecoderNE
+import os
 
 class TransformerDecoder(nn.Module):
   def __init__(self, src_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
@@ -26,3 +27,10 @@ class TransformerDecoder(nn.Module):
     for decoder in self._decoders:
       src_embed = decoder(src_embed, src_mask)
     return self._decoder_norm(src_embed)
+
+  def save(self, path=None):
+    torch.save(self.state_dict(), (str(os.getcwd()) + 'model_decoder.pth') if path == None else path)
+  
+  def load(self, path):
+    self.load_state_dict(torch.load(path))
+    self.eval()

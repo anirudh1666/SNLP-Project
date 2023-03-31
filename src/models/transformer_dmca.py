@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from utils.transformer.positional_embedding import PositionalEmbedding
 from utils.transformer.encoder import Encoder
 from utils.transformer.decoder import DecoderNE, DecoderLocal
+import os
 
 class TransformerDMCA(nn.Module):
   def __init__(self, src_vocab, split, compression_rate=3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
@@ -37,3 +38,10 @@ class TransformerDMCA(nn.Module):
         modules.append(DecoderLocal(d_model, h, d_ff, dropout, split))
         
     return nn.ModuleList(modules)
+
+  def save(self, path=None):
+    torch.save(self.state_dict(), (str(os.getcwd()) + 'model_dmca.pth') if path == None else path)
+  
+  def load(self, path):
+    self.load_state_dict(torch.load(path))
+    self.eval()
