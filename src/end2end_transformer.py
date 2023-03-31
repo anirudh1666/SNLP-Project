@@ -40,6 +40,10 @@ if __name__ == '__main__':
     start_symbol = decoder.encode(SOS_SYMBOL)[0]
     end_symbol = decoder.encode(EOS_SYMBOL)[0]
 
+    del extracted_articles
+    del tgts
+    del train
+
     abstractor = Transformer(src_vocab_len, tgt_vocab_len)
     criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.1)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
