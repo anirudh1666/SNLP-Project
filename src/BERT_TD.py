@@ -21,7 +21,6 @@ def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
     for datum in train:
         encoded = encoder.encode(datum)
         if len(encoded) < max_len:
-            print(max_len - len(encoded))
             encoded = F.pad(encoded, (0, max_len - len(encoded)), 'constant', 0)
         tensors.append(encoded)
     tensors = torch.stack(tensors)
