@@ -18,20 +18,18 @@ def extract_summaries(articles, L=100, extractor=Summarizer()):
         extracted[i] = ' '.join(extractor(article).split(' ')[:L])
     return extracted
 
-def decoder_only_preprocess(train):
-    SOS = '<s>'
-    EOS = '</s>'
-
+def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
     max_len = 0
     for i in range(len(train)):
-        train[i] = SOS + ' ' + train[i] + ' ' + EOS 
-        max_len = max(max_len, len(train[i]))
+        train[i] = SOS + ' ' + train[i] + ' ' + SEP + ' ' + tgt[i] + ' ' + EOS
+        max_len = max(max_len, len(train[i].split(' ')))
 
     encoder = DelimiterEncoder(' ', train)
     tensors = []
     for datum in train:
         encoded = encoder.encode(datum)
         if len(encoded) < max_len:
+            print(max_len - len(encoded))
             encoded = F.pad(encoded, (0, max_len - len(encoded)), 'constant', 0)
         tensors.append(encoded)
     tensors = torch.stack(tensors)
@@ -40,12 +38,13 @@ def decoder_only_preprocess(train):
     return tensors, len(encoder.vocab), encoder
 
 if __name__ == '__main__':
-
     N = 1
     L = 500
     EPOCHS = 25 
     BATCH_SIZE = 1
+    SOS_SYMBOL = '<s>'
     SEP_SYMBOL = '<sep>'
+    EOS_SYMBOL = '</s>'
 
     train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
     train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
@@ -56,22 +55,23 @@ if __name__ == '__main__':
     tgts = getArticles(train_tgt_fp, N=N)
     tgts_str = [' '.join(summary) for summary in tgts]
 
+    test_article = articles_str[0]
+    test_tgt = tgts_str[0]
+
     # for decoder training, concat src sequence <SEPARATOR TOKEN> tgt sequence.
     # length will be <= 2L
-    train = np.array([t1 + ' ' + SEP_SYMBOL + ' ' + t2 for t1, t2 in zip(extracted_articles, tgts_str)])
-    X, src_vocab_len, encoder= decoder_only_preprocess(train)
+    X, src_vocab_len, encoder = decoder_only_preprocess(articles_str, tgts_str)
 
     abstractor = TransformerDecoder(src_vocab_len)
     criterion = LabelSmoothing(size=src_vocab_len, padding_idx=0, smoothing=0.1)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
 
-    test_article = X[0].unsqueeze(0)
-    test_article_en = encoder.decode(X[0])
-    test_padding = (X[0] != 0).unsqueeze(0)
-    test_len = len(X[0])
-    start_symbol = encoder.encode('<s>')[0]
-    end_symbol = encoder.encode('</s>')[0]
-    sep_symbol_enc = encoder.encode('<sep>')[0]
+    test_article_encoded = encoder.encode(test_article).unsqueeze(0)
+    test_padding = (test_article_encoded != 0).unsqueeze(0)
+    test_len = L
+    start_symbol = encoder.encode(SOS_SYMBOL)[0]
+    end_symbol = encoder.encode(EOS_SYMBOL)[0]
+    sep_symbol_enc = encoder.encode(SEP_SYMBOL)[0]
 
     setup_GPU(abstractor, X)
 
@@ -91,9 +91,11 @@ if __name__ == '__main__':
         elapsed = time.time() - start
         print(f'\nEPOCH: {epoch} completed | Time: {elapsed:.3f} | Loss: {total_loss:.3f}\n')
         total_loss = 0'''
+    print('\nCompleted Training\n')
 
-    gpred = greedy_decode_decoder_only(abstractor, test_article, test_len, start_symbol, end_symbol, sep_symbol_enc)
+    gpred = greedy_decode_decoder_only(abstractor, test_article_encoded, test_len, start_symbol, end_symbol, sep_symbol_enc)
     decoded = encoder.decode(gpred)
     #abstractor.save(os.path.join(os.getcwd(), 'BERT_TD_25e_20n_500l_5b.pth'))
+    print(test_article)
     print(decoded)
-    print(test_article_en)
+    print(test_tgt)

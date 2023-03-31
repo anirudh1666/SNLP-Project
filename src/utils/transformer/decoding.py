@@ -5,7 +5,7 @@ from utils.general.data_tools import subsequent_mask
 
 def greedy_decode(model, src, src_mask, max_len, start_symbol, end_symbol):
     memory = model.encode(src, src_mask)
-    ys = torch.zeros(1, 1).fill_(start_symbol).type_as(src.data) # [[<s>, ich, bin]]
+    ys = torch.zeros(1, 1).fill_(start_symbol).type_as(src.data) 
     for i in range(max_len - 1):
         if ys[0, -1] == end_symbol:
             break
@@ -23,10 +23,10 @@ def greedy_decode(model, src, src_mask, max_len, start_symbol, end_symbol):
 def greedy_decode_decoder_only(model, src, max_len, start_symbol, end_symbol, sep_symbol):
     ys = torch.cat([
         torch.zeros(1, 1).fill_(start_symbol).type_as(src.data), 
-        ys, 
+        src, 
         torch.zeros(1, 1).fill_(sep_symbol).type_as(src.data)], dim=1)
-    # feed src <SEPARATOR> into model
-    for _ in range(max_len - 1):
+    # feed "<s> src <sep>" into model
+    for _ in range(10):
         if ys[0, -1] == end_symbol:
             break
 

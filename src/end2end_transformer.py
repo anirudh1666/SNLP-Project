@@ -80,9 +80,9 @@ if __name__ == '__main__':
         print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
         total_loss = 0
 
+    abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_25e_20n_500l_5b.pth'))
     gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
     decoded = decoder.decode(gpred)
-    abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_25e_20n_500l_5b.pth'))
     print(decoded)
     print(test_article_en)
     print(decoder.decode(y[0]))
