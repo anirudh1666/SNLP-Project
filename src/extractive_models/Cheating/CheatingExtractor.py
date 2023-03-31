@@ -23,7 +23,7 @@ def getCheatingSummarization(text, num_paragraphs=5):
     combined = [(scores[i], paragraphs[i]) for i in range(len(paragraphs))]
     topParagraphs = np.array(sorted(((v,k) for v,k in combined), reverse=True)[:num_paragraphs])
 
-    return topParagraphs[:, 1]
+    return ' '.join(topParagraphs[:, 1])
 
 ### Example way to use this:
 # from utils.general.extract_articles import getArticles
