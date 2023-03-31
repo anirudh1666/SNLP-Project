@@ -11,8 +11,9 @@ Step 3: Calculates textrank scores
 Step 4: Sort sentences by textrank scores
 """
 def textrank(text):
+    main = text.split('\n')
     vectorizer = TfidfVectorizer(stop_words='english')
-    X = vectorizer.fit_transform(text)
+    X = vectorizer.fit_transform(main)
     tokens = vectorizer.get_feature_names_out()
 
     similarity_matrix = (X * X.T).A
@@ -20,8 +21,6 @@ def textrank(text):
 
     scores = nx.pagerank(graph)
 
-    ranked_sentences = np.array(sorted(((scores[i], s) for i, s in enumerate(text)), reverse=True))
+    ranked_sentences = np.array(sorted(((scores[i], s) for i, s in enumerate(main)), reverse=True))
     
     return ' '.join(ranked_sentences[:, 1])
-
-
