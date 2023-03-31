@@ -62,7 +62,7 @@ if __name__ == '__main__':
     X, src_vocab_len,encoder = toy_preprocess(data)
     
     
-    transformer = TransformerDMCA(src_vocab_len, N=2, split=3, compression_rate=1)
+    transformer = TransformerDMCA(src_vocab_len, N=2, split=1, compression_rate=3)
 
     criterion = LabelSmoothing(size=src_vocab_len, padding_idx=0, smoothing=0.0)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(transformer.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
