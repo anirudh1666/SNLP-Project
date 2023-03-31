@@ -4,7 +4,7 @@ from utils.transformer.label_smoothing import LabelSmoothing
 from utils.transformer.noam_opt import NoamOpt
 import torch.nn.functional as F
 from summarizer import Summarizer
-from utils.transformer.decoding import greedy_decode, greedy_decode_decoder_only
+from utils.transformer.decoding import greedy_decode_decoder_only
 from utils.general.extract_articles import getArticles
 from utils.general.data_tools import setup_GPU, data_iterator
 import numpy as np
@@ -45,7 +45,7 @@ def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
 if __name__ == '__main__':
     N = 1
     L = 500
-    EPOCHS = 25 
+    EPOCHS = 250
     BATCH_SIZE = 1
     SOS_SYMBOL = '<s>'
     SEP_SYMBOL = '<sep>'
