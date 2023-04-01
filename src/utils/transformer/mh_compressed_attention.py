@@ -31,8 +31,7 @@ class MemoryCompressedAttention(nn.Module):
     def _compress_sub_mask(self, seq_length, comp_length, cf):
         subsequent_mask = np.triu(np.ones((comp_length, comp_length)), k=1).astype('uint8')
         subsequent_mask = np.stack(list(itertools.chain.from_iterable([[m]*cf for m in subsequent_mask])))
-        trim = comp_length*cf - seq_length
-        return (torch.from_numpy(subsequent_mask) == 0)[:-trim]
+        return (torch.from_numpy(subsequent_mask) == 0)[:seq_length]
 
     def forward(self, query, key, value, padding_mask=None):
     
@@ -45,8 +44,9 @@ class MemoryCompressedAttention(nn.Module):
             key, value = map(lambda t: F.pad(t, (0, 0, padding, 0)), (key, value))
 
         key, value = map(self._memcomp, (key, value))
+
         compressed_size = key.shape[-2]
-        mask = self._compress_sub_mask(l, compressed_size, l//compressed_size + 1).unsqueeze(0)
+        mask = self._compress_sub_mask(l, compressed_size, math.ceil(l/compressed_size)).unsqueeze(0)
 
         # 2) Do all the linear projections in batch from d_model => h x d_k 
         query, key, value = \

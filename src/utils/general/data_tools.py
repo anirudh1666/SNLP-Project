@@ -112,6 +112,7 @@ class Batch:
         if tgt is not None:
             self.tgt = tgt[:, :-1] # shift right
             self.tgt_y = tgt[:, 1:]
+            self.pad_mask = tgt_mask = (tgt != pad).unsqueeze(-2) 
             self.tgt_mask = self._make_std_mask(self.tgt, pad)
             self.ntokens = (self.tgt_y != pad).data.sum()
 

@@ -20,18 +20,13 @@ class LocalAttention(nn.Module):
         b, l, _ = x.shape
 
         x = x.chunk(self._split, dim=-2)
-        pad_masks = padding_mask.chunk(self._split, dim=-1)
         masks = [self.split_mask(c.size(-2)) for c in x]
 
-        #print([m.shape for m in pad_masks])
-        #print([m.shape for m in masks])
+        if padding_mask is not None:
+            pad_masks = padding_mask.chunk(self._split, dim=-1)
+            masks = [pm & m for pm,m in zip(pad_masks, masks)]
 
-        #print(pad_masks[-1][0])
-        #print(masks[-1][0])
 
-        final_masks = [pm & m for pm,m in zip(pad_masks, masks)]
 
-        #print(final_masks[-1][0])
-
-        out = torch.cat([f(c, c, c, mask=m) for f, c, m in zip(self._attn_mechs, x, final_masks)], dim=-2)
+        out = torch.cat([f(c, c, c, mask=m) for f, c, m in zip(self._attn_mechs, x, masks)], dim=-2)
         return out

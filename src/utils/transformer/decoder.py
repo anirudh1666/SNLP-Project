@@ -76,8 +76,8 @@ class DecoderNE(nn.Module):
       self._self_attn_1 = MultiHeadedAttention(h, d_model)
       self._self_attn_2 = MultiHeadedAttention(h, d_model)
     else:
-      self._self_attn_1 = MemoryCompressedAttention(h, d_model)
-      self._self_attn_2 = MemoryCompressedAttention(h, d_model)
+      self._self_attn_1 = MemoryCompressedAttention(h, d_model, compress_ratio=compressed)
+      self._self_attn_2 = MemoryCompressedAttention(h, d_model, compress_ratio=compressed)
       
     self._ff = FeedForward(d_model, d_ff, dropout)
     self._norm1 = nn.LayerNorm(d_model)
@@ -98,7 +98,7 @@ class DecoderLocal(nn.Module):
   def __init__(self, d_model, h, d_ff, dropout, split=3):
     super().__init__()
     self._self_attn_1 = LocalAttention(h, d_model, split=split)
-    self._self_attn_2 = MultiHeadedAttention(h, d_model)
+    self._self_attn_2 = LocalAttention(h, d_model, split=split)
       
     self._ff = FeedForward(d_model, d_ff, dropout)
     self._norm1 = nn.LayerNorm(d_model)
@@ -107,9 +107,9 @@ class DecoderLocal(nn.Module):
     self._dropout1 = nn.Dropout(dropout)
     self._dropout2 = nn.Dropout(dropout)
 
-  def forward(self, x, encoder_output, src_mask, tgt_mask):
+  def forward(self, x, tgt_mask):
     x2 = self._dropout1(self._self_attn_1(x, tgt_mask))
     x = self._norm1(x + x2)
-    x2 = self._dropout2(self._self_attn_2(x, encoder_output, encoder_output, tgt_mask))
+    x2 = self._dropout2(self._self_attn_2(x, tgt_mask))
     x = self._norm2(x + x2)
     return self._norm3(x + self._ff(x))
