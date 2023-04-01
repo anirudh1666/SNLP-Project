@@ -8,8 +8,16 @@ import torch
 import os
 import time
 
+def read_extracted_articles(fp):
+    articles = ''
+    with open(fp, 'r') as f:
+        for line in f:
+            articles += line
+    articles = articles.split('<EOA>')
+    return articles[:200] # 200 is N, so return first N.
+
 if __name__ == '__main__':
-    N = 1000 # how many articles to take in.
+    N = 200 # how many articles to take in.
     L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
     EPOCHS = 200
     BATCH_SIZE = 10
@@ -17,19 +25,25 @@ if __name__ == '__main__':
     EOS_SYMBOL = '</s>'
 
     # filepaths to data - varies per person
+    '''
     train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
     train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
 
     extracted_articles = get_extracted(train_src_fp, N=N, L=L)
     tgts = [' '.join(summary) for summary in getArticles(train_tgt_fp, N=N)]
     train = np.array([[t1, t2] for t1, t2 in zip(extracted_articles, tgts)]) # each nested list [extracted text, abstracted text] N x 2
-
+    '''
     '''
         To feed train into preprocess, train should be in the following format:
         [[extracted article 1, target article 1], ..., [extracted article 1000, target article 1000]] 
         Make sure to wrap it with a numpy array
     '''
-    
+
+    extracted_articles = read_extracted_articles('src/ExtractedArticles_processed_256_1000.txt')
+    tgts = [' '.join(summary) for summary in getArticles('datasets/animal_tok_min5_L7.5k/train.tgt', N=N)]
+    train = np.array([[t1, t2] for t1, t2 in zip(extracted_articles, tgts)])
+
+
     # returns X (prepend SOS, append EOS, padding so theyre all the same len, indices)
     # y is the corresponding abstracted summary N x 1 (prepend SOS, appened EOS, padding so theyre all the same len, indices). List of integers corresponding to words 
     # src_vocab_len # of unique words in input articles
@@ -54,25 +68,28 @@ if __name__ == '__main__':
 
     setup_GPU(abstractor, X, y)
 
-    print('\nStarting Training\n')
-    for epoch in range(EPOCHS):
-        abstractor.train()
-        start = time.time()
-        total_loss = 0
-        for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
-            # 20 articles, batch size = 5, i = 0..3
-            print(f'Batch {i} / 3 completed')
+    try:
+        print('\nStarting Training\n')
+        for epoch in range(EPOCHS):
+            abstractor.train()
+            start = time.time()
+            total_loss = 0
+            for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
+                # 20 articles, batch size = 5, i = 0..3
+                print(f'Batch {i} / 3 completed')
 
-            out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-            loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
-            total_loss += loss
-            loss.backward()
-            optimiser.step()
-            optimiser.optimizer.zero_grad()
-        
-        elapsed = time.time() - start
-        print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
-        total_loss = 0
+                out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
+                loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
+                total_loss += loss
+                loss.backward()
+                optimiser.step()
+                optimiser.optimizer.zero_grad()
+            
+            elapsed = time.time() - start
+            print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
+            total_loss = 0
+    except KeyboardInterrupt:
+        abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_200e_1000n_500l_10b.pth')) # RENAME THIS TO FILE
 
     abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_200e_1000n_500l_10b.pth')) # RENAME THIS TO FILE
     gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
