@@ -15,13 +15,13 @@ if __name__ == '__main__':
     N = 200 # how many articles to take in.
     L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
     EPOCHS = 200
-    BATCH_SIZE = 10
+    BATCH_SIZE = 2
     SOS_SYMBOL = '<s>'
     EOS_SYMBOL = '</s>'
 
     # filepaths to data - varies per person
-    train_src_fp = 'C:/Users/Julian/Desktop/StatsNLP/dataset/animal_tok_min5_L7.5k/test.raw.src'
-    train_tgt_fp = 'C:/Users/Julian/Desktop/StatsNLP/dataset/animal_tok_min5_L7.5k/test.raw.tgt'
+    train_src_fp = 'C:/Users/Julian/Desktop/StatsNLP/dataset/animal_tok_min5_L7.5k/train.src'
+    train_tgt_fp = 'C:/Users/Julian/Desktop/StatsNLP/dataset/animal_tok_min5_L7.5k/train.tgt'
 
     extracted_articles = get_extracted(train_src_fp, N=N, L=L, extractor=getCheatingSummarization, split_str='\n')
     tgts = [' '.join(summary) for summary in getArticles(train_tgt_fp, N=N)]
@@ -51,12 +51,11 @@ if __name__ == '__main__':
     del extracted_articles
     del tgts
     del train
-
-    abstractor = Transformer(src_vocab_len, tgt_vocab_len)
+    
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    abstractor = Transformer(src_vocab_len, tgt_vocab_len).to(device)
     criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.1)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-    
-    setup_GPU(abstractor, X, y)
 
     print('\nStarting Training\n')
     abstractor.train()
@@ -67,8 +66,8 @@ if __name__ == '__main__':
             elapsed = time.time() - start
             print(f'Batch {i} / {N/BATCH_SIZE} completed, Time: {elapsed}')
 
-            out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-            loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
+            out = abstractor(batch.src.cuda(), batch.tgt.cuda(), batch.src_mask.cuda(), batch.tgt_mask.cuda())
+            loss = criterion(out.contiguous().view(-1, out.size(-1)).cuda(), batch.tgt_y.contiguous().view(-1).cuda())
             total_loss += loss
             loss.backward()
             optimiser.step()
@@ -77,7 +76,7 @@ if __name__ == '__main__':
         elapsed = time.time() - start
         print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
         total_loss = 0
-        abstractor.save(os.path.join(os.getcwd(), 'Cheating_TED_25e_20n_500l_5b.pth'))
+        abstractor.save(os.path.join(os.getcwd(), 'src', 'Cheating_TED', f'Cheating_TED_{epoch}e_200n_500l_2b.pth'))
     gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
     decoded = decoder.decode(gpred)
     print(decoded)
