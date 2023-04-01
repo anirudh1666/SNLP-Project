@@ -27,8 +27,16 @@ def decoder_only_preprocess(train, tgt, SOS='<s>', EOS='</s>', SEP='<sep>'):
 
     return tensors, len(encoder.vocab), encoder
 
+def read_extracted_articles(fp):
+    articles = ''
+    with open(fp, 'r') as f:
+        for line in f:
+            articles += line
+    articles = articles.split('<EOA>')
+    return articles[:200] # 200 is N, so return first N.
+
 if __name__ == '__main__':
-    N = 1000
+    N = 200
     L = 1000
     EPOCHS = 200
     BATCH_SIZE = 10
@@ -36,8 +44,8 @@ if __name__ == '__main__':
     SEP_SYMBOL = '<sep>'
     EOS_SYMBOL = '</s>'
 
-    train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
-    train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
+    #train_src_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.src'
+    #train_tgt_fp = 'datasets/animal_tok_min5_L7.5k/train.raw.tgt'
 
     extracted_articles = get_extracted(train_src_fp, N=N, L=L)
     tgts = [' '.join(summary) for summary in getArticles(train_tgt_fp, N=N)]
@@ -46,7 +54,7 @@ if __name__ == '__main__':
     test_article = extracted_articles[0]
     test_article_encoded = encoder.encode(test_article).unsqueeze(0)
     test_tgt = tgts[0]
-    test_len = len(test_tgt)
+    test_len = len(test_tgt.split(' '))
     start_symbol = encoder.encode(SOS_SYMBOL)[0]
     end_symbol = encoder.encode(EOS_SYMBOL)[0]
     sep_symbol_enc = encoder.encode(SEP_SYMBOL)[0]
