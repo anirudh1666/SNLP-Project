@@ -1,6 +1,6 @@
 from models.transformer_ed import Transformer
 from extractive_models.Cheating.CheatingExtractor import getCheatingSummarization
-from utils.general.extract_articles import getArticles
+from extract_articles import getArticles
 from utils.general.data_tools import preprocess, data_iterator
 from utils.transformer.decoding import greedy_decode, beam_search
 from utils.transformer.label_smoothing import LabelSmoothing

@@ -76,7 +76,7 @@ if __name__ == '__main__':
             total_loss = 0
             for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
                 # 20 articles, batch size = 5, i = 0..3
-                print(f'Batch {i} / 3 completed')
+                print(f'Batch {i} / {N/BATCH_SIZE} completed')
 
                 out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
                 loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
