@@ -17,10 +17,10 @@ def read_extracted_articles(fp):
     return articles[:200] # 200 is N, so return first N.
 
 if __name__ == '__main__':
-    N = 200 # how many articles to take in.
+    N = 100 # how many articles to take in.
     L = 500 # we take the first L tokens (words) out of the extractive summariser. We can vary this parameter depending on the model.
     EPOCHS = 200
-    BATCH_SIZE = 10
+    BATCH_SIZE = 2
     SOS_SYMBOL = '<s>'
     EOS_SYMBOL = '</s>'
 
@@ -62,11 +62,10 @@ if __name__ == '__main__':
     del tgts
     del train
 
-    abstractor = Transformer(src_vocab_len, tgt_vocab_len)
-    criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.1)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    abstractor = Transformer(src_vocab_len, tgt_vocab_len).to(device)
+    criterion = LabelSmoothing(size=tgt_vocab_len, padding_idx=0, smoothing=0.1) #._criterion.to(device)
     optimiser = NoamOpt(512, 2, 4000, torch.optim.Adam(abstractor.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-
-    setup_GPU(abstractor, X, y)
 
     try:
         print('\nStarting Training\n')
@@ -74,12 +73,11 @@ if __name__ == '__main__':
             abstractor.train()
             start = time.time()
             total_loss = 0
-            for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y)):
-                # 20 articles, batch size = 5, i = 0..3
+            for i, batch in enumerate(data_iterator(BATCH_SIZE, X, y, device)):
                 print(f'Batch {i} / {N/BATCH_SIZE} completed')
 
-                out = abstractor(batch.src, batch.tgt, batch.src_mask, batch.tgt_mask)
-                loss = criterion(out.contiguous().view(-1, out.size(-1)), batch.tgt_y.contiguous().view(-1))
+                out = abstractor(batch.src.cuda(), batch.tgt.cuda(), batch.src_mask.cuda(), batch.tgt_mask.cuda())
+                loss = criterion(out.contiguous().view(-1, out.size(-1)).cuda(), batch.tgt_y.contiguous().view(-1).cuda())
                 total_loss += loss
                 loss.backward()
                 optimiser.step()
@@ -87,11 +85,12 @@ if __name__ == '__main__':
             
             elapsed = time.time() - start
             print(f'\nEPOCH: {epoch} completed | Time: {elapsed} | Loss: {total_loss:.3f}\n')
-            total_loss = 0
+            total_loss = 0 
+            abstractor.save(os.path.join(os.getcwd(), 'src', 'BERT_TED', f'BERT_TED_{epoch}e_200n_500l_2b.pth'))
     except KeyboardInterrupt:
-        abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_200e_1000n_500l_10b.pth')) # RENAME THIS TO FILE
+        abstractor.save(os.path.join(os.getcwd(), 'src', 'BERT_TED', f'BERT_TED_{200}e_200n_500l_2b.pth'))
 
-    abstractor.save(os.path.join(os.getcwd(), 'BERT_TED_200e_1000n_500l_10b.pth')) # RENAME THIS TO FILE
+    abstractor.save(os.path.join(os.getcwd(), 'src', 'BERT_TED', f'BERT_TED_200e_200n_500l_2b.pth'))
     gpred = greedy_decode(abstractor, test_article, test_padding, test_len, start_symbol, end_symbol)
     decoded = decoder.decode(gpred)
     print(decoded)
